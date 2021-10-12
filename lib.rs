@@ -45,11 +45,22 @@ mod incrementer {
             self.my_value_or_zero(&caller)
         }
 
+        #[ink(message)]
+        pub fn inc_mine(&mut self, by: i32) {
+            // ACTION: Get the `caller` of this function.
+            let caller = self.env().caller();
+            // ACTION: Get `my_value` that belongs to `caller` by using `my_value_or_zero`.
+            let _mv = self.my_value_or_zero(&caller);
+            // ACTION: Insert the incremented `value` back into the mapping.
+            self.my_value.entry(caller).and_modify(|_mv| *_mv += by).or_insert(by);
+        }
+
         fn my_value_or_zero(&self, of: &AccountId) -> i32 {
             // ACTION: `get` and return the value of `of` and `unwrap_or` return 0
             let mv = self.my_value.get(of).unwrap_or(&0);
             *mv
         }
+
     }
 
     #[cfg(test)]
@@ -77,9 +88,13 @@ mod incrementer {
         // Use `ink::test` to initialize accounts.
         #[ink::test]
         fn my_value_works() {
-            let contract = Incrementer::new(11);
+            let mut contract = Incrementer::new(11);
             assert_eq!(contract.get(), 11);
             assert_eq!(contract.get_mine(), 0);
+            contract.inc_mine(5);
+            assert_eq!(contract.get_mine(), 5);
+            contract.inc_mine(10);
+            assert_eq!(contract.get_mine(), 15);
         }
     }
 }
